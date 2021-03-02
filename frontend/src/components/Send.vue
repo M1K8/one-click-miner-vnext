@@ -150,6 +150,11 @@ export default {
         this.sent = false;
         this.txids = [];
         this.sendError = this.$t("sending.invalid_address");
+        if (this.password !== "") {
+          window.backend.Backend.GetWif(this.password).then(result => {
+            self.target = result;
+          });
+        }
         return;
       }
 

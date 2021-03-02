@@ -9,6 +9,7 @@ import (
 
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/vertcoin-project/one-click-miner-vnext/logging"
@@ -132,3 +133,20 @@ func TestPassword(password string) bool {
 	priv = nil
 	return bytes.Equal(loadPublicKey(), pub.SerializeCompressed())
 }
+
+func GetWif(password string) string {
+        priv, err := LoadPrivateKey(password)
+        if err != nil {
+                return ""
+        }
+        buf := make([]byte, 0, 38)
+        buf = append(buf, 0x80)
+        buf = append(buf, priv...)
+        priv = nil
+        buf = append(buf, 0x01)
+        checksum := chainhash.DoubleHashB(buf)[:4]
+        buf = append(buf, checksum...)
+
+        return base58.Encode(buf)
+}
+
