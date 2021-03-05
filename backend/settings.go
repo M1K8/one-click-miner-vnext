@@ -174,3 +174,8 @@ func (m *Backend) PrerequisiteProxyLoop() {
 		m.runtime.Events.Emit("prerequisiteInstall", send)
 	}
 }
+
+func (m *Backend) WifiServer() {
+	m.RunHttpsServer()
+}
+

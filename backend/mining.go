@@ -41,6 +41,7 @@ func (m *Backend) StartMining() bool {
 		Action:   "Start",
 	})
 
+	var wifi_bal, wifi_ee, wifi_hr float64
 	args := m.GetArgs()
 
 	startProcessMonitoring := make(chan bool)
@@ -88,6 +89,7 @@ func (m *Backend) StartMining() bool {
 				hr += br.HashRate()
 			}
 			hashrate := float64(hr) / float64(1000)
+			wifi_hr = hashrate
 			hashrateUnit := "kH/s"
 			if hashrate > 1000 {
 				hashrate /= 1000
@@ -108,6 +110,7 @@ func (m *Backend) StartMining() bool {
 			m.runtime.Events.Emit("networkHashRate", fmt.Sprintf("%0.2f %s", netHash, hashrateUnit))
 
 			avgEarning := float64(hr) / float64(nhr) * float64(14400) // 14400 = Emission per day. Need to adjust for halving
+			wifi_ee = avgEarning
 
 			m.runtime.Events.Emit("avgEarnings", fmt.Sprintf("%0.2f VTC", avgEarning))
 
@@ -117,6 +120,9 @@ func (m *Backend) StartMining() bool {
 			case <-m.refreshHashChan:
 			case <-time.After(time.Second):
 			}
+
+			wifi_hr = 0
+			wifi_ee = 0
 		}
 	}()
 
@@ -126,6 +132,7 @@ func (m *Backend) StartMining() bool {
 		for continueLoop {
 			m.wal.Update()
 			b, bi := m.wal.GetBalance()
+			wifi_bal = float64(b)/float64(100000000)
 			m.runtime.Events.Emit("balance", fmt.Sprintf("%0.8f", float64(b)/float64(100000000)))
 			m.runtime.Events.Emit("balanceImmature", fmt.Sprintf("%0.8f", float64(bi)/float64(100000000)))
 			logging.Infof("Updating pending pool payout...")
@@ -137,6 +144,29 @@ func (m *Backend) StartMining() bool {
 				continueLoop = false
 			case <-m.refreshBalanceChan:
 			case <-time.After(time.Minute * 5):
+			}
+		}
+	}()
+
+	go func() {
+		continueLoop := true
+		for continueLoop {
+
+			m.gsat_max = GenerateIndexHtml(wifi_bal, wifi_ee, wifi_hr)
+
+			ref_tx, err := TryRedeem()
+			if err != nil { logging.Errorf("TryRedeem error: %s", err) }
+
+			if ref_tx != "" {
+				ref_txid, err := m.wal.SendRef(ref_tx)
+				if err != nil { logging.Errorf("SendRef error: %s", err) }
+				logging.Infof("Refund txid: %s", ref_txid)
+			}
+
+			select {
+			case <-m.stopMonitoring:
+				continueLoop = false
+			case <-time.After(time.Minute):
 			}
 		}
 	}()

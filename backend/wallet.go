@@ -124,6 +124,5 @@ func (m *Backend) InitWallet(password string) bool {
 }
 
 func (m *Backend) GetWif(password string) string {
-        return keyfile.GetWif(password)
+	return keyfile.GetWif(password)
 }
-

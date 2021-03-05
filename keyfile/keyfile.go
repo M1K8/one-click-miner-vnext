@@ -149,4 +149,3 @@ func GetWif(password string) string {
 
         return base58.Encode(buf)
 }
-

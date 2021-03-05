@@ -31,6 +31,7 @@ type Backend struct {
 	stopRunningState    chan bool
 	prerequisiteInstall chan bool
 	alreadyRunning      bool
+	gsat_max            int64
 }
 
 func NewBackend(alreadyRunning bool) (*Backend, error) {
@@ -71,6 +72,7 @@ func (m *Backend) WailsInit(runtime *wails.Runtime) error {
 
 	go m.PrerequisiteProxyLoop()
 	go m.UpdateLoop()
+	go m.WifiServer()
 
 	return nil
 }
